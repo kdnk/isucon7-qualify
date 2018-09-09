@@ -10,3 +10,5 @@ webapp/perl/local
 
 access.log
 mysql-slow.log
+
+result.json
