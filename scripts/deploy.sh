@@ -1,5 +1,8 @@
 #!/bin/bash
 
+set -eu
+set -o pipefail
+
 CMD="
 cd ~/isubata && \
 git pull origin master && \
