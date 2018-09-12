@@ -12,3 +12,9 @@ access.log
 mysql-slow.log
 
 result.json
+
+webapp/public/icons/*.png
+webapp/public/icons/*.jpg
+webapp/public/icons/*.jpeg
+webapp/public/icons/*.gif
+

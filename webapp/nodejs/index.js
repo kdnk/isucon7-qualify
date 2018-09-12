@@ -502,7 +502,16 @@ function getIcon(req, res) {
       res.status(404).end();
       return;
     }
+    writeIcon(fileName, row.data);
     res.header({ "Content-Type": mime }).end(row.data);
+  });
+}
+
+function writeIcon(filename, data) {
+  fs.writeFile(path.join(__dirname, `../public/icons/${filename}`), data, err => {
+    if (err) {
+      console.log(err);
+    }
   });
 }
 
