@@ -235,37 +235,33 @@ function getMessage(req, res) {
 
   const query = `
   select 
-    message.
-    , message.created_at
-    , message.content
+    message.id as id
+    , message.created_at as created_at
+    , message.content as content
     , user.name as name
     , user.display_name as display_name
     , user.avatar_icon as avatar_icon
   from message 
   inner join user
   on message.user_id = user.id
-  where id > ? AND channel_id = ?
-  order by id DESC
+  where message.id > ? AND message.channel_id = ?
+  order by message.id DESC
   limit 100
   `;
 
   const { channel_id, last_message_id } = req.query;
   return pool.query(query, [last_message_id, channel_id]).then(rows => {
     let p = Promise.resolve();
-    const response = rows
-      .map(row => ({
-        id: row.id,
-        date: formatDate(row.created_at),
-        content: row.content,
-        user: {
-          name: row.name,
-          display_name: row.display_name,
-          avatar_icon: row.avatar_icon,
-        },
-      }))
-      .reduce((acc, row) => {
-        acc[row.id] = row;
-      }, {});
+    const response = rows.map(row => ({
+      id: row.id,
+      date: formatDate(row.created_at),
+      content: row.content,
+      user: {
+        name: row.name,
+        display_name: row.display_name,
+        avatar_icon: row.avatar_icon,
+      },
+    }));
 
     return p.then(() => {
       response.reverse();
