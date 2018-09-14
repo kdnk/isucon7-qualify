@@ -295,28 +295,35 @@ function fetchUnread(req, res) {
   }
 
   return sleep(1.0)
-    .then(() => pool.query("SELECT id FROM channel"))
+    .then(() =>
+      pool.query(
+        `
+        SELECT channel.id as id, haveread.message_id as message_id
+        FROM channel
+        left join haveread
+        on channel.id = haveread.channel_id and haveread.user_id = ?
+        `,
+        [userId]
+      )
+    )
     .then(rows => {
-      const channelIds = rows.map(row => row.id);
       const results = [];
       let p = Promise.resolve();
-
-      channelIds.forEach(channelId => {
+      rows.forEach(row => {
         p = p
-          .then(() => pool.query("SELECT * FROM haveread WHERE user_id = ? AND channel_id = ?", [userId, channelId]))
-          .then(([row]) => {
-            if (row) {
+          .then(() => {
+            if (row.message_id) {
               return pool.query("SELECT COUNT(*) as cnt FROM message WHERE channel_id = ? AND ? < id", [
-                channelId,
+                row.id,
                 row.message_id,
               ]);
             } else {
-              return pool.query("SELECT COUNT(*) as cnt FROM message WHERE channel_id = ?", [channelId]);
+              return pool.query("SELECT COUNT(*) as cnt FROM message WHERE channel_id = ?", [row.id]);
             }
           })
           .then(([row3]) => {
             const r = {};
-            r.channel_id = channelId;
+            r.channel_id = row.id;
             r.unread = row3.cnt;
             results.push(r);
           });
