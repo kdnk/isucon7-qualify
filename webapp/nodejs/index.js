@@ -234,14 +234,14 @@ function getMessage(req, res) {
   }
 
   const query = `
-  select 
+  select
     message.id as id
     , message.created_at as created_at
     , message.content as content
     , user.name as name
     , user.display_name as display_name
     , user.avatar_icon as avatar_icon
-  from message 
+  from message
   inner join user
   on message.user_id = user.id
   where message.id > ? AND message.channel_id = ?
@@ -342,44 +342,51 @@ function getHistory(req, res) {
       return;
     }
 
-    return pool
-      .query("SELECT * FROM message WHERE channel_id = ? ORDER BY id DESC LIMIT ? OFFSET ?", [
-        channelId,
-        N,
-        (page - 1) * N,
-      ])
-      .then(rows => {
-        const messages = [];
-        let p = Promise.resolve();
-        rows.forEach(row => {
-          const r = {};
-          r.id = row.id;
-          p = p.then(() => {
-            return pool
-              .query("SELECT name, display_name, avatar_icon FROM user WHERE id = ?", [row.user_id])
-              .then(([user]) => {
-                r.user = user;
-                r.date = formatDate(row.created_at);
-                r.content = row.content;
-                messages.push(r);
-              });
-          });
-        });
+    const query = `
+    SELECT
+      message.id as id,
+      message.created_at as created_at,
+      message.content as content,
+      user.name as name,
+      user.display_name as display_name,
+      user.avatar_icon as avatar_icon
+    from message
+    inner join user
+    on message.user_id = user.id
+    WHERE channel_id = ?
+    ORDER BY id DESC
+    LIMIT ? OFFSET ?
+    `;
 
-        return p.then(() => {
-          messages.reverse();
-          return getChannelListInfo(pool, channelId).then(({ channels, description }) => {
-            res.render("history", {
-              req,
-              channels,
-              channelId,
-              messages,
-              maxPage,
-              page,
-            });
+    return pool.query(query, [channelId, N, (page - 1) * N]).then(rows => {
+      let p = Promise.resolve();
+      const messages = rows.map(row => {
+        const r = {};
+        r.id = row.id;
+        r.user = {
+          name: row.name,
+          display_name: row.display_name,
+          avatar_icon: row.avatar_icon,
+        };
+        r.date = formatDate(row.created_at);
+        r.content = row.content;
+        return r;
+      });
+
+      return p.then(() => {
+        messages.reverse();
+        return getChannelListInfo(pool, channelId).then(({ channels, description }) => {
+          res.render("history", {
+            req,
+            channels,
+            channelId,
+            messages,
+            maxPage,
+            page,
           });
         });
       });
+    });
   });
 }
 
